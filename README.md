@@ -12,8 +12,14 @@ mkdir sample
 cd sample
 glueetl init
 ```
+```
+.
+├── README.md
+├── config.yaml
+└── script.py
+```
 
-Please change default values in file config.yaml
+Please change default values in file `config.yaml` and write your job logic in file `script.py`.
 
 ## Deploy a Glue job
 ```bash
