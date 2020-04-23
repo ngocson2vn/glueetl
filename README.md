@@ -13,6 +13,8 @@ cd sample
 glueetl init
 ```
 
+Please change default values in file config.yaml
+
 ## Deploy a Glue job
 ```bash
 cd sample
