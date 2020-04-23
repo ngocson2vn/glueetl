@@ -16,7 +16,7 @@ def init_job():
   with open('config.yaml', 'w') as conf:
     conf.write("""job: 
   name: sample-glue-job
-  role_name: AWSGlueServiceRoleSample
+  role_name: AWSGlueServiceRole
   script_location: s3://glue-job-scripts/sample-glue-job/script.py
   max_concurrent_runs: 10
   command_name: glueetl
@@ -54,10 +54,9 @@ def deploy_job():
   conf = config()
   job = get_job(conf['name'])
   if job['Deployed']:
-    _update_job_script(job["ScriptLocation"])
+    _update_job(conf)
   else:
     _create_job(conf)
-
   print("Deployed {} successfully".format(conf['name']))
 
 
@@ -107,6 +106,7 @@ def _create_job(conf):
   boto3.resource('s3').meta.client.upload_file('script.py', bucket, key)
 
   client = boto3.client('glue')
+
   response = client.create_job(
     Name=conf['name'],
     Role=conf['role_name'],
@@ -127,15 +127,64 @@ def _create_job(conf):
     Tags=conf['tags'] if 'tags' in conf else {},
     GlueVersion='1.0'
   )
+  if 'trigger' in conf['trigger']:
+    response = client.create_trigger(
+      Name=conf['trigger']['name'],
+      Type='SCHEDULED',
+      Schedule=conf['trigger']['schedule'],
+      Actions=[
+        {
+          'JobName': conf['name']
+        }
+      ]
+    )
   return response['Name']
 
 
-def _update_job_script(scriptLocation):
-  s3 = boto3.resource('s3')
-  parts = scriptLocation.split('//')[1].split('/')
+def _update_job(conf):
+  parts = conf['script_location'].split('//')[1].split('/')
   bucket = parts[0]
   key = '/'.join(parts[1:])
-  s3.meta.client.upload_file('script.py', bucket, key)
+  boto3.resource('s3').meta.client.upload_file('script.py', bucket, key)
+
+  client = boto3.client('glue')
+
+  response = client.update_job(
+    JobName=conf['name'],
+    JobUpdate={
+      'Role': conf['role_name'],
+      'ExecutionProperty': {
+        'MaxConcurrentRuns': conf['max_concurrent_runs'] if 'max_concurrent_runs' in conf else 1
+      },
+      'Command': {
+        'Name': conf['command_name'] if 'command_name' in conf else 'glueetl',
+        'ScriptLocation': conf['script_location'],
+        'PythonVersion': '3'
+      },
+      'Connections': {
+        'Connections': conf['connections'] if 'connections' in conf else []
+      },
+      'MaxRetries': conf['max_retries'] if 'max_retries' in conf else 0,
+      'Timeout': conf['timeout'] if 'timeout' in conf else 28800,
+      'MaxCapacity': conf['max_capacity'] if 'max_capacity' in conf else 10,
+      'GlueVersion': '1.0'
+    }
+  )
+  jobName = response['JobName']
+
+  if 'trigger' in conf:
+    try:
+      response = client.get_trigger(
+        Name=conf['trigger']['name']
+      )
+      if 'Trigger' in response:
+        _update_trigger(conf['trigger'], conf['name'])
+      else:
+        _create_trigger(conf['trigger'], conf['name'])
+    except:
+      _create_trigger(conf['trigger'], conf['name'])
+
+  return jobName
 
 
 def _get_job_run(jobName, jobRunID):
@@ -145,3 +194,31 @@ def _get_job_run(jobName, jobRunID):
     RunId=jobRunID
   )
   return response['JobRun']
+
+
+def _create_trigger(trigger, jobName):
+  client = boto3.client('glue')
+  client.create_trigger(
+    Name=trigger['name'],
+    Type='SCHEDULED',
+    Schedule=trigger['schedule'],
+    Actions=[
+      {
+        'JobName': jobName
+      }
+    ]
+  )
+
+def _update_trigger(trigger, jobName):
+  client = boto3.client('glue')
+  client.update_trigger(
+    Name=trigger['name'],
+    TriggerUpdate={
+      'Schedule': trigger['schedule'],
+      'Actions': [
+        {
+          'JobName': jobName
+        }
+      ]
+    }
+  )

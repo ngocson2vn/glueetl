@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="glueetl",
-    version="0.0.1",
+    version="0.0.2",
     scripts=['glueetl'],
     author="Son Nguyen",
     license="MIT",

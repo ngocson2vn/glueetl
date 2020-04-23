@@ -1,0 +1,18 @@
+job: 
+  name: sample-glue-job
+  role_name: AWSGlueServiceRole
+  script_location: s3://glue-job-scripts/sample-glue-job/script.py
+  max_concurrent_runs: 10
+  command_name: glueetl
+  max_retries: 0
+  timeout: 28800
+  max_capacity: 10
+  connections:
+    - first_connection
+    - second_connection
+  trigger:
+    name: trigger-sample-glue-job
+    schedule: cron(5 * * * ? *)
+  tags:
+    key1: value1
+    key2: value2
