@@ -11,7 +11,10 @@ $ pip install glueetl
 ## How to develop a Glue job
 You can develop a Glue job by following the steps below.
 
-### Set up AWS Credentials and Region
+
+
+### 1. Set up AWS Credentials and Region
+
 Before you can deploy a Glue job to AWS Glue, you must set up AWS Credentials and Region.
 ```bash
 $ vim ~/.aws/credentials
@@ -22,7 +25,10 @@ aws_secret_access_key=<AWS_SECRET_ACCESS_KEY>
 region=<REGION>
 ```
 
-### Initialize a Glue job
+
+
+### 2. Initialize a Glue job
+
 ```bash
 $ mkdir sample
 $ cd sample
@@ -60,13 +66,21 @@ job:
 
 Please change default values in file `config.yaml` and write your job logic in file `script.py`.  
 
-### Deploy a Glue job
+
+
+### 3. Deploy a Glue job
+
 ```bash
 $ cd sample
 $ glueetl deploy
 ```
+Your job will be deployed to AWS Glue.
 
-### Run a Glue job
+
+
+### 4. Run a Glue job
+
+You can manually run your Glue job like this.
 ```bash
 $ cd sample
 $ glueetl run --arg1=value1 --arg2=value2
