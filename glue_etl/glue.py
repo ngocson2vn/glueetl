@@ -26,6 +26,12 @@ def init_job():
   connections:
     - first_connection
     - second_connection
+  default_arguments:
+    argument1: value1
+    argument2: value2
+  non_overridable_arguments:
+    argument1: value1
+    argument2: value2
   trigger:
     name: trigger-sample-glue-job
     schedule: cron(5 * * * ? *)
@@ -118,6 +124,8 @@ def _create_job(conf):
       'ScriptLocation': conf['script_location'],
       'PythonVersion': '3'
     },
+    DefaultArguments=conf['default_arguments'] if 'default_arguments' in conf else {},
+    NonOverridableArguments=conf['non_overridable_arguments'] if 'non_overridable_arguments' in conf else {},
     Connections={
       'Connections': conf['connections'] if 'connections' in conf else []
     },
@@ -127,7 +135,7 @@ def _create_job(conf):
     Tags=conf['tags'] if 'tags' in conf else {},
     GlueVersion='1.0'
   )
-  if 'trigger' in conf['trigger']:
+  if 'trigger' in conf:
     response = client.create_trigger(
       Name=conf['trigger']['name'],
       Type='SCHEDULED',
@@ -156,6 +164,8 @@ def _update_job(conf):
       'ExecutionProperty': {
         'MaxConcurrentRuns': conf['max_concurrent_runs'] if 'max_concurrent_runs' in conf else 1
       },
+      'DefaultArguments': conf['default_arguments'] if 'default_arguments' in conf else {},
+      'NonOverridableArguments': conf['non_overridable_arguments'] if 'non_overridable_arguments' in conf else {},
       'Command': {
         'Name': conf['command_name'] if 'command_name' in conf else 'glueetl',
         'ScriptLocation': conf['script_location'],

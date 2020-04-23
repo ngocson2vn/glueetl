@@ -55,6 +55,12 @@ job:
   connections:
     - first_connection
     - second_connection
+  default_arguments:
+    argument1: value1
+    argument2: value2
+  non_overridable_arguments:
+    argument1: value1
+    argument2: value2
   trigger:
     name: trigger-sample-glue-job
     schedule: cron(5 * * * ? *)
