@@ -2,6 +2,7 @@ import os
 import boto3
 import yaml
 import time
+import signal
 
 
 BREAK_STATES = [
@@ -10,6 +11,10 @@ BREAK_STATES = [
   'FAILED',
   'TIMEOUT'
 ]
+
+
+_jobNameCache = ''
+_jobRunIdCache = ''
 
 
 def init_job():
@@ -67,21 +72,29 @@ def deploy_job():
 
 
 def run_job(args):
+  global _jobNameCache
+  global _jobRunIdCache
   arguments = {}
   for a in args:
     k, v = a.split('=')
     arguments[k] = v
+
   conf = config()
+  _jobNameCache = conf['name']
+
   client = boto3.client('glue')
   response = client.start_job_run(
     JobName = conf['name'],
     Arguments = arguments
   )
-  jobRunID = response['JobRunId']
+  jobRunId = response['JobRunId']
+  _jobRunIdCache = jobRunId
+  signal.signal(signal.SIGINT, _signal_handler)
+  signal.signal(signal.SIGTERM, _signal_handler)
   print('JobName: {}'.format(conf['name']))
-  print("  JobRunId: {}".format(jobRunID))
+  print("  JobRunId: {}".format(jobRunId))
   while True:
-    stats = _get_job_run(conf['name'], jobRunID)
+    stats = _get_job_run(conf['name'], jobRunId)
     print('  JobRunState: {}'.format(stats['JobRunState']))
     if 'ErrorMessage' in stats: 
       print('  ErrorMessage: {}'.format(stats['ErrorMessage']))
@@ -197,13 +210,28 @@ def _update_job(conf):
   return jobName
 
 
-def _get_job_run(jobName, jobRunID):
+def _get_job_run(jobName, jobRunId):
   client = boto3.client('glue')
   response = client.get_job_run(
     JobName=jobName,
-    RunId=jobRunID
+    RunId=jobRunId
   )
   return response['JobRun']
+
+
+def _stop_job_run():
+  client = boto3.client('glue')
+  response = client.batch_stop_job_run(
+    JobName=_jobNameCache,
+    JobRunIds=[
+      _jobRunIdCache,
+    ]
+  )
+  if 'Errors' in response and len(response['Errors']) > 0:
+    for err in response['Errors']:
+      print('  ErrorMessage: {} ({})'.format(err['ErrorMessage'], err['ErrorCode']))
+  else:
+    print('\n  *Stopping {}'.format(_jobRunIdCache))
 
 
 def _create_trigger(trigger, jobName):
@@ -219,6 +247,7 @@ def _create_trigger(trigger, jobName):
     ]
   )
 
+
 def _update_trigger(trigger, jobName):
   client = boto3.client('glue')
   client.update_trigger(
@@ -232,3 +261,7 @@ def _update_trigger(trigger, jobName):
       ]
     }
   )
+
+
+def _signal_handler(signal_number, frame):
+  _stop_job_run()
