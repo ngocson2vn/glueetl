@@ -4,6 +4,7 @@ import yaml
 import time
 import signal
 
+VERSION = '0.0.5'
 
 BREAK_STATES = [
   'STOPPED',

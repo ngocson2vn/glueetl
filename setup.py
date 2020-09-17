@@ -1,11 +1,12 @@
 import setuptools
+from glue_etl import glue
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="glueetl",
-    version="0.0.4",
+    version=glue.VERSION,
     scripts=['glueetl'],
     author="Son Nguyen",
     license="MIT",
